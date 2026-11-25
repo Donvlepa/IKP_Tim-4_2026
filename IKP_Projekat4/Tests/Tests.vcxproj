@@ -131,12 +131,21 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="ConstantsTests.cpp" />
+    <ClCompile Include="EnumsTests.cpp" />
+    <ClCompile Include="MessageHeaderTests.cpp" />
+    <ClCompile Include="RequestEntryTests.cpp" />
+    <ClCompile Include="RequestTests.cpp" />
     <ClCompile Include="Tests.cpp" />
+    <ClCompile Include="WorkerEntryTests.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Common\Common.vcxproj">
       <Project>{44a2f0b4-79bf-4efd-b368-00572d3e05b0}</Project>
     </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="TestSuites.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
