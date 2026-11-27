@@ -20,3 +20,6 @@ void runMessageHeaderTests();
 
 // Runs linked queue tests.
 void runQueueTests();
+
+// Runs hash map tests.
+void runHashMapTests();
