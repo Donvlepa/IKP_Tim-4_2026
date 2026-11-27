@@ -23,3 +23,12 @@ void runQueueTests();
 
 // Runs hash map tests.
 void runHashMapTests();
+
+// Runs protocol header tests.
+void runProtocolTests();
+
+// Runs payload model tests.
+void runPayloadTests();
+
+// Runs payload serialization tests.
+void runPayloadCodecTests();
