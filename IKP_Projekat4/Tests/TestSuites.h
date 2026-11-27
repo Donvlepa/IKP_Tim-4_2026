@@ -1,0 +1,37 @@
+#pragma once
+
+// Runs enumeration tests.
+void runEnumsTests();
+
+// Runs system constant tests.
+void runConstantsTests();
+
+// Runs request model tests.
+void runRequestTests();
+
+// Runs request entry tests.
+void runRequestEntryTests();
+
+// Runs worker entry tests.
+void runWorkerEntryTests();
+
+// Runs message header tests.
+void runMessageHeaderTests();
+
+// Runs linked queue tests.
+void runQueueTests();
+
+// Runs hash map tests.
+void runHashMapTests();
+
+// Runs protocol header tests.
+void runProtocolTests();
+
+// Runs payload model tests.
+void runPayloadTests();
+
+// Runs payload serialization tests.
+void runPayloadCodecTests();
+
+// Runs message buffer tests.
+void runMessageBufferTests();
