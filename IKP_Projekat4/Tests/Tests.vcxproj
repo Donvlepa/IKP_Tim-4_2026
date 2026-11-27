@@ -134,6 +134,7 @@
     <ClCompile Include="ConstantsTests.cpp" />
     <ClCompile Include="EnumsTests.cpp" />
     <ClCompile Include="HashMapTests.cpp" />
+    <ClCompile Include="MessageBufferTests.cpp" />
     <ClCompile Include="MessageHeaderTests.cpp" />
     <ClCompile Include="PayloadCodecTests.cpp" />
     <ClCompile Include="PayloadTests.cpp" />

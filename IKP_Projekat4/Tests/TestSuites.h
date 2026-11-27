@@ -32,3 +32,6 @@ void runPayloadTests();
 
 // Runs payload serialization tests.
 void runPayloadCodecTests();
+
+// Runs message buffer tests.
+void runMessageBufferTests();
