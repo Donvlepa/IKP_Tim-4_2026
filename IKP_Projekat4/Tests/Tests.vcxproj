@@ -133,6 +133,7 @@
   <ItemGroup>
     <ClCompile Include="ConstantsTests.cpp" />
     <ClCompile Include="EnumsTests.cpp" />
+    <ClCompile Include="HashMapTests.cpp" />
     <ClCompile Include="MessageHeaderTests.cpp" />
     <ClCompile Include="QueueTests.cpp" />
     <ClCompile Include="RequestEntryTests.cpp" />

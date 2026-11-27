@@ -1,7 +1,6 @@
 #include <iostream>
 #include "TestSuites.h"
 
-
 int main()
 {
     std::cout << "================================\n";
@@ -28,6 +27,9 @@ int main()
 
     std::cout << "\n[QUEUE]\n";
     runQueueTests();
+
+    std::cout << "\n[HASH MAP]\n";
+    runHashMapTests();
 
     std::cout << "\n================================\n";
     std::cout << "All tests passed successfully.\n";
