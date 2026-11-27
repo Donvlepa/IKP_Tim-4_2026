@@ -17,3 +17,6 @@ void runWorkerEntryTests();
 
 // Runs message header tests.
 void runMessageHeaderTests();
+
+// Runs linked queue tests.
+void runQueueTests();
