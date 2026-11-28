@@ -59,3 +59,6 @@ void runTcpClientTests();
 
 // Runs worker registration tests.
 void runWorkerRegistrationTests();
+
+// Runs registration server tests.
+void runRegistrationServerTests();

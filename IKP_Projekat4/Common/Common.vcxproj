@@ -147,6 +147,7 @@
     <ClInclude Include="pch.h" />
     <ClInclude Include="Protocol.h" />
     <ClInclude Include="Queue.h" />
+    <ClInclude Include="RegistrationServer.h" />
     <ClInclude Include="Request.h" />
     <ClInclude Include="RequestEntry.h" />
     <ClInclude Include="SendUtils.h" />
@@ -168,6 +169,7 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="Protocol.cpp" />
+    <ClCompile Include="RegistrationServer.cpp" />
     <ClCompile Include="RequestEntry.cpp" />
     <ClCompile Include="SendUtils.cpp" />
     <ClCompile Include="SocketUtils.cpp" />

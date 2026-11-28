@@ -5,15 +5,14 @@
 #include <iostream>
 
 #include "WinsockContext.h"
-#include "TcpListener.h"
+#include "RegistrationServer.h"
 #include "Constants.h"
 
 namespace
 {
-    // Indicates whether server shutdown has been requested.
     volatile LONG shutdownRequested = 0;
 
-    // Handles Ctrl+C and Ctrl+Break console signals.
+    // Handles console shutdown signals.
     BOOL WINAPI consoleControlHandler(DWORD controlType)
     {
         switch (controlType)
@@ -50,12 +49,8 @@ namespace
 int main()
 {
     std::cout
-        << "================================\n";
-
-    std::cout
-        << "          LOAD BALANCER          \n";
-
-    std::cout
+        << "================================\n"
+        << "          LOAD BALANCER          \n"
         << "================================\n\n";
 
     // STEP 1: Initialize Winsock.
@@ -75,10 +70,10 @@ int main()
     std::cout
         << "[LB] Winsock initialized successfully.\n";
 
-    // STEP 2: Create the TCP listener.
-    TcpListener listener;
+    // STEP 2: Start the registration server.
+    RegistrationServer server;
 
-    result = listener.start(
+    result = server.start(
         "0.0.0.0",
         Constants::SERVER_PORT
     );
@@ -105,53 +100,62 @@ int main()
     }
 
     std::cout
-        << "[LB] Server socket created successfully.\n";
-
-    std::cout
         << "[LB] Listening on port "
-        << listener.getPort()
-        << ".\n";
-
-    std::cout
-        << "[LB] Server is running.\n";
-
-    std::cout
+        << server.getPort() << ".\n"
+        << "[LB] Server is running.\n"
+        << "[LB] Maximum connections: "
+        << RegistrationServer::MAX_CONNECTIONS << "\n"
         << "[LB] Press Ctrl+C to stop the server.\n\n";
 
-    // STEP 4: Keep the server running.
-    // Actual connection acceptance will be implemented later.
+    int exitCode = 0;
+
+    // STEP 4: Process TCP connections and messages.
     while (!isShutdownRequested())
     {
-        Sleep(100);
+        result = server.poll(100);
+
+        if (result != 0)
+        {
+            std::cerr
+                << "[ERROR] Server polling failed."
+                << " Error: " << result << "\n";
+
+            exitCode = 1;
+
+            break;
+        }
     }
 
-    // STEP 5: Stop the server.
+    // STEP 5: Print the final server statistics.
     std::cout
-        << "\n[LB] Shutdown requested.\n";
+        << "\n[LB] Shutting down server.\n"
+        << "[LB] Active connections: "
+        << server.getConnectionCount() << "\n"
+        << "[LB] Registered users: "
+        << server.getUserCount() << "\n"
+        << "[LB] Registered workers: "
+        << server.getWorkerCount() << "\n"
+        << "[LB] Observed requests: "
+        << server.getObservedRequestCount() << "\n";
 
-    std::cout
-        << "[LB] Closing listening socket...\n";
-
-    result = listener.stop();
+    // STEP 6: Release network resources.
+    result = server.stop();
 
     if (result != 0)
     {
         std::cerr
-            << "[ERROR] Listener cleanup failed."
+            << "[ERROR] Server cleanup failed."
             << " Error: " << result << "\n";
 
-        SetConsoleCtrlHandler(
-            consoleControlHandler,
-            FALSE
-        );
-
-        return 1;
+        exitCode = 1;
+    }
+    else
+    {
+        std::cout
+            << "[LB] All server sockets closed.\n";
     }
 
-    std::cout
-        << "[LB] Listening socket closed.\n";
-
-    // STEP 6: Release Winsock resources.
+    // STEP 7: Release Winsock resources.
     result = winsock.cleanup();
 
     if (result != 0)
@@ -160,24 +164,24 @@ int main()
             << "[ERROR] Winsock cleanup failed."
             << " Error: " << result << "\n";
 
-        SetConsoleCtrlHandler(
-            consoleControlHandler,
-            FALSE
-        );
-
-        return 1;
+        exitCode = 1;
     }
-
-    std::cout
-        << "[LB] Winsock resources released.\n";
+    else
+    {
+        std::cout
+            << "[LB] Winsock resources released.\n";
+    }
 
     SetConsoleCtrlHandler(
         consoleControlHandler,
         FALSE
     );
 
-    std::cout
-        << "[LB] Server stopped successfully.\n";
+    if (exitCode == 0)
+    {
+        std::cout
+            << "[LB] Server stopped successfully.\n";
+    }
 
-    return 0;
+    return exitCode;
 }

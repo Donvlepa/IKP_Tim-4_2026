@@ -145,6 +145,7 @@
     <ClCompile Include="PayloadTests.cpp" />
     <ClCompile Include="ProtocolTests.cpp" />
     <ClCompile Include="QueueTests.cpp" />
+    <ClCompile Include="RegistrationServerTests.cpp" />
     <ClCompile Include="RequestEntryTests.cpp" />
     <ClCompile Include="RequestTests.cpp" />
     <ClCompile Include="SendUtilsTests.cpp" />
