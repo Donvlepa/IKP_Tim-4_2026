@@ -148,6 +148,7 @@
     <ClInclude Include="Queue.h" />
     <ClInclude Include="Request.h" />
     <ClInclude Include="RequestEntry.h" />
+    <ClInclude Include="SendUtils.h" />
     <ClInclude Include="SocketUtils.h" />
     <ClInclude Include="WinsockContext.h" />
     <ClInclude Include="WorkerEntry.h" />
@@ -164,6 +165,7 @@
     </ClCompile>
     <ClCompile Include="Protocol.cpp" />
     <ClCompile Include="RequestEntry.cpp" />
+    <ClCompile Include="SendUtils.cpp" />
     <ClCompile Include="SocketUtils.cpp" />
     <ClCompile Include="WinsockContext.cpp" />
   </ItemGroup>

@@ -49,6 +49,9 @@ int main()
     std::cout << "\n[SOCKET UTILS]\n";
     runSocketUtilsTests();
 
+    std::cout << "\n[SEND UTILS]\n";
+    runSendUtilsTests();
+
     std::cout << "\n================================\n";
     std::cout << "All tests passed successfully.\n";
     std::cout << "================================\n";

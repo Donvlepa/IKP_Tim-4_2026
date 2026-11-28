@@ -41,3 +41,6 @@ void runWinsockContextTests();
 
 // Runs socket utility tests.
 void runSocketUtilsTests();
+
+// Runs send utility tests.
+void runSendUtilsTests();
