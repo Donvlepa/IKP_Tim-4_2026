@@ -78,6 +78,12 @@
     <ClInclude Include="RegistrationServer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="ConnectionContext.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="ConnectionHandoff.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Common.cpp">
@@ -117,6 +123,12 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="RegistrationServer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="ConnectionContext.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="ConnectionHandoff.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

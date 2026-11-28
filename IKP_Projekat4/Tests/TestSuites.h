@@ -62,3 +62,6 @@ void runWorkerRegistrationTests();
 
 // Runs registration server tests.
 void runRegistrationServerTests();
+
+// Runs connection handoff tests.
+void runConnectionHandoffTests();

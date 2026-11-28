@@ -70,6 +70,9 @@ int main()
     std::cout << "\n[REGISTRATION SERVER]\n";
     runRegistrationServerTests();
 
+    std::cout << "\n[CONNECTION HANDOFF]\n";
+    runConnectionHandoffTests();
+
     std::cout << "\n================================\n";
     std::cout << "All tests passed successfully.\n";
     std::cout << "================================\n";

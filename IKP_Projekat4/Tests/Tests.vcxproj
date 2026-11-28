@@ -134,6 +134,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="ConnectionHandoffTests.cpp" />
     <ClCompile Include="ConstantsTests.cpp" />
     <ClCompile Include="EnumsTests.cpp" />
     <ClCompile Include="HashMapTests.cpp" />

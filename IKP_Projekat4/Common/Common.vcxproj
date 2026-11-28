@@ -135,6 +135,8 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="ConnectionContext.h" />
+    <ClInclude Include="ConnectionHandoff.h" />
     <ClInclude Include="Constants.h" />
     <ClInclude Include="Enums.h" />
     <ClInclude Include="framework.h" />
@@ -159,6 +161,8 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Common.cpp" />
+    <ClCompile Include="ConnectionContext.cpp" />
+    <ClCompile Include="ConnectionHandoff.cpp" />
     <ClCompile Include="MessageBuffer.cpp" />
     <ClCompile Include="MessageIO.cpp" />
     <ClCompile Include="PayloadCodec.cpp" />
