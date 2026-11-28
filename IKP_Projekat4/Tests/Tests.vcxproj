@@ -155,6 +155,7 @@
     <ClCompile Include="TcpListenerTests.cpp" />
     <ClCompile Include="Tests.cpp" />
     <ClCompile Include="TurReceiverTests.cpp" />
+    <ClCompile Include="TwrReceiverTests.cpp" />
     <ClCompile Include="WinsockContextTests.cpp" />
     <ClCompile Include="WorkerEntryTests.cpp" />
     <ClCompile Include="WorkerRegistrationTests.cpp" />

@@ -157,6 +157,7 @@
     <ClInclude Include="TcpClient.h" />
     <ClInclude Include="TcpListener.h" />
     <ClInclude Include="TurReceiver.h" />
+    <ClInclude Include="TwrReceiver.h" />
     <ClInclude Include="WinsockContext.h" />
     <ClInclude Include="WorkerEntry.h" />
   </ItemGroup>
@@ -181,6 +182,7 @@
     <ClCompile Include="TcpClient.cpp" />
     <ClCompile Include="TcpListener.cpp" />
     <ClCompile Include="TurReceiver.cpp" />
+    <ClCompile Include="TwrReceiver.cpp" />
     <ClCompile Include="WinsockContext.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

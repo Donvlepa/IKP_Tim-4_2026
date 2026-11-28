@@ -68,3 +68,6 @@ void runConnectionHandoffTests();
 
 // Runs TUR receiver tests.
 void runTurReceiverTests();
+
+// Runs TWR receiver tests.
+void runTwrReceiverTests();

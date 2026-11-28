@@ -1,0 +1,139 @@
+#pragma once
+
+#include <winsock2.h>
+#include <Windows.h>
+
+#include <cstdint>
+#include <cstddef>
+
+#include "ConnectionContext.h"
+#include "ConnectionHandoff.h"
+
+// Contains a diagnostic snapshot of an active worker.
+struct TwrWorkerInfo
+{
+    uint64_t workerId = 0;
+    uint64_t sessionId = 0;
+
+    uint64_t lastHeartbeatAt = 0;
+
+    uint64_t observedHeartbeats = 0;
+    uint64_t observedResults = 0;
+
+    uint64_t lastLbRequestId = 0;
+    uint64_t lastAttemptId = 0;
+};
+
+// Contains diagnostic statistics of the TWR thread.
+struct TwrStatistics
+{
+    std::size_t activeWorkers = 0;
+
+    uint64_t registeredWorkers = 0;
+    uint64_t rejectedWorkers = 0;
+    uint64_t disconnectedWorkers = 0;
+
+    uint64_t observedHeartbeats = 0;
+    uint64_t observedResults = 0;
+
+    int lastError = 0;
+};
+
+// Receives messages from registered worker connections.
+class TwrReceiver
+{
+public:
+    static constexpr std::size_t MAX_WORKERS =
+        FD_SETSIZE - 1;
+
+    explicit TwrReceiver(
+        ConnectionHandoff& handoff
+    ) noexcept;
+
+    ~TwrReceiver() noexcept;
+
+    TwrReceiver(const TwrReceiver&) = delete;
+
+    TwrReceiver& operator=(
+        const TwrReceiver&) = delete;
+
+    TwrReceiver(TwrReceiver&&) = delete;
+
+    TwrReceiver& operator=(
+        TwrReceiver&&) = delete;
+
+    // Starts the TWR thread.
+    int start();
+
+    // Stops the TWR thread and releases its connections.
+    // Stop TUR before stopping TWR in the complete server.
+    int stop() noexcept;
+
+    // Returns a synchronized statistics snapshot.
+    TwrStatistics getStatistics() noexcept;
+
+    // Copies information about an active worker.
+    // Returns false if the worker does not exist.
+    bool getWorker(
+        uint64_t workerId,
+        TwrWorkerInfo& information
+    ) noexcept;
+
+private:
+    struct WorkerSlot
+    {
+        ConnectionContext* connection = nullptr;
+
+        TwrWorkerInfo information;
+    };
+
+    ConnectionHandoff& handoff_;
+
+    WorkerSlot workers_[MAX_WORKERS];
+
+    uint64_t nextSessionId_;
+
+    HANDLE stopEvent_;
+    HANDLE thread_;
+
+    // State modified exclusively by TWR.
+    TwrStatistics workingStatistics_;
+
+    // Synchronized diagnostic snapshots.
+    TwrStatistics publishedStatistics_;
+
+    TwrWorkerInfo publishedWorkers_[MAX_WORKERS];
+
+    CRITICAL_SECTION statisticsLock_;
+
+    static unsigned __stdcall threadEntry(
+        void* parameter
+    );
+
+    unsigned run();
+
+    int pollOnce();
+
+    void adoptConnections();
+
+    void processWorker(std::size_t index);
+
+    void closeWorker(
+        std::size_t index,
+        bool rejected
+    ) noexcept;
+
+    void rejectConnection(
+        ConnectionContext* connection
+    ) noexcept;
+
+    std::size_t findFreeSlot() const noexcept;
+
+    bool workerExists(
+        uint64_t workerId
+    ) const noexcept;
+
+    void publishStatistics() noexcept;
+
+    bool shutdownRequested() const noexcept;
+};

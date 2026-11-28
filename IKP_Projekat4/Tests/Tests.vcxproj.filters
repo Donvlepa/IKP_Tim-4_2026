@@ -87,6 +87,9 @@
     <ClCompile Include="TurReceiverTests.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="TwrReceiverTests.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="TestSuites.h">

@@ -87,6 +87,9 @@
     <ClInclude Include="TurReceiver.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="TwrReceiver.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Common.cpp">
@@ -135,6 +138,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="TurReceiver.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="TwrReceiver.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
