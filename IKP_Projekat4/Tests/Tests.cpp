@@ -82,6 +82,9 @@ int main()
     std::cout << "\n[REQUEST REGISTRY]\n";
     runRequestRegistryTests();
 
+    std::cout << "\n[TUR REQUEST INTEGRATION]\n";
+    runTurRequestIntegrationTests();
+
     std::cout << "\n================================\n";
     std::cout << "All tests passed successfully.\n";
     std::cout << "================================\n";

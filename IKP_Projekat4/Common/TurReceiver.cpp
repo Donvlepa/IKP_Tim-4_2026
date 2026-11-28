@@ -22,14 +22,16 @@ namespace
     constexpr int MAX_MESSAGES_PER_POLL = 16;
 }
 
-// Initializes an inactive TUR receiver.
+// Initializes TUR in diagnostic mode.
 TurReceiver::TurReceiver(
     ConnectionHandoff& handoff,
     uint32_t registrationTimeoutMs
 ) noexcept
     : handoff_(handoff),
+    requestRegistry_(nullptr),
     connections_{},
     registrationTimeoutMs_(registrationTimeoutMs),
+    nextUserSessionId_(1),
     stopEvent_(nullptr),
     thread_(nullptr),
     workingStatistics_{},
@@ -38,12 +40,22 @@ TurReceiver::TurReceiver(
     InitializeCriticalSection(&statisticsLock_);
 }
 
-// Stops the thread before releasing shared resources.
+// Initializes TUR with a shared request registry.
+TurReceiver::TurReceiver(
+    ConnectionHandoff& handoff,
+    RequestRegistry& requestRegistry,
+    uint32_t registrationTimeoutMs
+) noexcept
+    : TurReceiver(handoff, registrationTimeoutMs)
+{
+    requestRegistry_ = &requestRegistry;
+}
+
+// Stops TUR before destroying shared resources.
 TurReceiver::~TurReceiver() noexcept
 {
     stop();
 
-    // Never destroy shared state while a thread may use it.
     if (thread_ != nullptr)
     {
         std::terminate();
@@ -52,7 +64,7 @@ TurReceiver::~TurReceiver() noexcept
     DeleteCriticalSection(&statisticsLock_);
 }
 
-// Starts the listener and the TUR thread.
+// Starts the listener and TUR thread.
 int TurReceiver::start(
     const char* ipAddress,
     uint16_t port
@@ -65,6 +77,18 @@ int TurReceiver::start(
         handoff_.isSealed())
     {
         return WSAEINVAL;
+    }
+
+    // The production receiver requires a valid registry.
+    if (requestRegistry_ != nullptr &&
+        !requestRegistry_->isValid())
+    {
+        const int error =
+            requestRegistry_->getFatalError();
+
+        return error != 0
+            ? error
+            : WSAEINVAL;
     }
 
     workingStatistics_ = TurStatistics{};
@@ -81,7 +105,6 @@ int TurReceiver::start(
         return result;
     }
 
-    // Create a manual-reset shutdown event.
     stopEvent_ = CreateEventW(
         nullptr,
         TRUE,
@@ -99,7 +122,6 @@ int TurReceiver::start(
         return error;
     }
 
-    // Start the actual TUR thread.
     const uintptr_t threadHandle =
         _beginthreadex(
             nullptr,
@@ -127,7 +149,7 @@ int TurReceiver::start(
     return 0;
 }
 
-// Signals shutdown and joins the TUR thread.
+// Signals shutdown and waits for TUR completion.
 int TurReceiver::stop() noexcept
 {
     if (thread_ != nullptr)
@@ -138,7 +160,10 @@ int TurReceiver::stop() noexcept
         }
 
         const DWORD waitResult =
-            WaitForSingleObject(thread_, INFINITE);
+            WaitForSingleObject(
+                thread_,
+                INFINITE
+            );
 
         if (waitResult != WAIT_OBJECT_0)
         {
@@ -159,7 +184,8 @@ int TurReceiver::stop() noexcept
         stopEvent_ = nullptr;
     }
 
-    const int listenerResult = listener_.stop();
+    const int listenerResult =
+        listener_.stop();
 
     if (listenerResult != 0)
     {
@@ -169,14 +195,15 @@ int TurReceiver::stop() noexcept
     return getStatistics().lastError;
 }
 
-// Returns the listening port.
+// Returns the active listening port.
 uint16_t TurReceiver::getPort() const noexcept
 {
     return listener_.getPort();
 }
 
-// Returns a synchronized copy of the statistics.
-TurStatistics TurReceiver::getStatistics() noexcept
+// Returns a synchronized statistics snapshot.
+TurStatistics TurReceiver::getStatistics()
+noexcept
 {
     EnterCriticalSection(&statisticsLock_);
 
@@ -188,18 +215,20 @@ TurStatistics TurReceiver::getStatistics() noexcept
     return result;
 }
 
-// Publishes statistics without exposing thread-owned data.
+// Publishes thread-owned diagnostic statistics.
 void TurReceiver::publishStatistics() noexcept
 {
     EnterCriticalSection(&statisticsLock_);
 
-    publishedStatistics_ = workingStatistics_;
+    publishedStatistics_ =
+        workingStatistics_;
 
     LeaveCriticalSection(&statisticsLock_);
 }
 
-// Checks the shutdown event.
-bool TurReceiver::shutdownRequested() const noexcept
+// Checks whether shutdown was requested.
+bool TurReceiver::shutdownRequested()
+const noexcept
 {
     return WaitForSingleObject(
         stopEvent_,
@@ -218,7 +247,7 @@ unsigned __stdcall TurReceiver::threadEntry(
     return receiver->run();
 }
 
-// Runs the TUR event loop.
+// Executes the TUR event loop.
 unsigned TurReceiver::run()
 {
     while (!shutdownRequested())
@@ -227,7 +256,8 @@ unsigned TurReceiver::run()
 
         if (result != 0)
         {
-            workingStatistics_.lastError = result;
+            workingStatistics_.lastError =
+                result;
         }
 
         publishStatistics();
@@ -238,7 +268,7 @@ unsigned TurReceiver::run()
         }
     }
 
-    // Close only connections still owned by TUR.
+    // Release connections still owned by TUR.
     for (std::size_t i = 0;
         i < MAX_CONNECTIONS;
         ++i)
@@ -267,7 +297,6 @@ int TurReceiver::pollOnce()
 
     bool hasBufferedWork = false;
 
-    // Add all locally owned sockets.
     for (std::size_t i = 0;
         i < MAX_CONNECTIONS;
         ++i)
@@ -302,7 +331,9 @@ int TurReceiver::pollOnce()
         static_cast<long>(timeoutMs / 1000);
 
     timeout.tv_usec =
-        static_cast<long>((timeoutMs % 1000) * 1000);
+        static_cast<long>(
+            (timeoutMs % 1000) * 1000
+            );
 
     const int selected = select(
         0,
@@ -322,7 +353,7 @@ int TurReceiver::pollOnce()
         return 0;
     }
 
-    // Process existing connections first.
+    // Process existing connections.
     for (std::size_t i = 0;
         i < MAX_CONNECTIONS;
         ++i)
@@ -340,7 +371,7 @@ int TurReceiver::pollOnce()
             continue;
         }
 
-        // Reject clients that do not register in time.
+        // Reject clients that fail to register in time.
         if (connection->role ==
             ConnectionRole::Pending &&
             GetTickCount64() -
@@ -348,6 +379,11 @@ int TurReceiver::pollOnce()
             registrationTimeoutMs_)
         {
             closeConnection(i, true);
+
+            if (workingStatistics_.lastError != 0)
+            {
+                return workingStatistics_.lastError;
+            }
 
             continue;
         }
@@ -371,7 +407,7 @@ int TurReceiver::pollOnce()
         }
     }
 
-    // TUR is the only thread allowed to accept connections.
+    // Only TUR may accept new TCP connections.
     if (selected > 0 &&
         FD_ISSET(
             listener_.getSocket(),
@@ -383,7 +419,7 @@ int TurReceiver::pollOnce()
     return 0;
 }
 
-// Accepts a bounded number of new connections.
+// Accepts a bounded number of incoming connections.
 int TurReceiver::acceptPending()
 {
     for (int i = 0;
@@ -477,12 +513,11 @@ int TurReceiver::acceptPending()
     return 0;
 }
 
-// Processes messages from one locally owned connection.
+// Receives and processes messages from one connection.
 void TurReceiver::processConnection(
     std::size_t index
 )
 {
-    // A reference allows ownership transfer to clear the slot.
     ConnectionContext*& connection =
         connections_[index];
 
@@ -515,16 +550,9 @@ void TurReceiver::processConnection(
             return;
         }
 
-        if (status == ReceiveStatus::ConnectionClosed)
+        if (status == ReceiveStatus::ConnectionClosed ||
+            status == ReceiveStatus::SocketError)
         {
-            closeConnection(index, false);
-
-            return;
-        }
-
-        if (status == ReceiveStatus::SocketError)
-        {
-            // A client socket error must not stop TUR.
             closeConnection(index, false);
 
             return;
@@ -550,7 +578,7 @@ void TurReceiver::processConnection(
             return;
         }
 
-        // STEP 1: Classify an unregistered connection.
+        // STEP 1: Register pending connections.
         if (connection->role ==
             ConnectionRole::Pending)
         {
@@ -569,6 +597,14 @@ void TurReceiver::processConnection(
                     return;
                 }
 
+                // Prevent session identifier reuse after overflow.
+                if (nextUserSessionId_ == 0)
+                {
+                    closeConnection(index, true);
+
+                    return;
+                }
+
                 if (!connection->receiver.consumeMessage())
                 {
                     closeConnection(index, true);
@@ -579,11 +615,14 @@ void TurReceiver::processConnection(
                 connection->role =
                     ConnectionRole::User;
 
+                // Assign a unique user session identifier.
+                connection->sessionId =
+                    nextUserSessionId_++;
+
                 --workingStatistics_.pendingConnections;
 
                 ++workingStatistics_.activeUsers;
 
-                // Continue processing buffered user messages.
                 continue;
             }
 
@@ -622,14 +661,11 @@ void TurReceiver::processConnection(
                 connection->workerId =
                     registration.workerId;
 
-                // TWR will assign the final session identifier.
                 connection->sessionId = 0;
 
-                // TWR must drain potentially buffered messages
-                // before waiting for socket readiness.
                 connection->needsDrain = true;
 
-                // STEP 2: Transfer exclusive ownership to TWR.
+                // Transfer exclusive ownership to TWR.
                 if (!handoff_.tryPush(connection))
                 {
                     connection->role =
@@ -640,8 +676,6 @@ void TurReceiver::processConnection(
                     return;
                 }
 
-                // On success, connections_[index] is nullptr.
-                // TUR must never access the transferred object.
                 --workingStatistics_.pendingConnections;
 
                 ++workingStatistics_.handedOffWorkers;
@@ -649,13 +683,12 @@ void TurReceiver::processConnection(
                 return;
             }
 
-            // Registration must be the first protocol message.
             closeConnection(index, true);
 
             return;
         }
 
-        // STEP 3: Process registered user requests.
+        // STEP 2: Validate user message types.
         if (connection->role != ConnectionRole::User ||
             header.type != MessageType::REQUEST)
         {
@@ -676,10 +709,39 @@ void TurReceiver::processConnection(
             return;
         }
 
-        // Request Registry and priority queues
-        // will be connected in phase 8.4.
-        ++workingStatistics_.observedRequests;
+        // STEP 3: Register the request before consuming
+        // the receive buffer.
+        const int result =
+            handleRequest(
+                *connection,
+                request
+            );
 
+        if (result != 0)
+        {
+            // Preserve already committed requests and stop
+            // TUR if the registry has a fatal internal error.
+            if (requestRegistry_ != nullptr)
+            {
+                const int fatalError =
+                    requestRegistry_->getFatalError();
+
+                if (fatalError != 0)
+                {
+                    workingStatistics_.lastError =
+                        fatalError;
+                }
+            }
+
+            // Reject the connection if the request
+            // cannot be accepted.
+            closeConnection(index, true);
+
+            return;
+        }
+
+        // STEP 4: Release the receive buffer only after
+        // the registry owns a copy of the request data.
         if (!connection->receiver.consumeMessage())
         {
             closeConnection(index, true);
@@ -688,11 +750,50 @@ void TurReceiver::processConnection(
         }
     }
 
-    // Continue processing buffered messages in the next iteration.
     connection->needsDrain = true;
 }
 
-// Releases one locally owned connection.
+// Registers a validated user request.
+int TurReceiver::handleRequest(
+    ConnectionContext& connection,
+    const RequestPayload& request
+)
+{
+    if (connection.role != ConnectionRole::User ||
+        connection.sessionId == 0)
+    {
+        return WSAEINVAL;
+    }
+
+    // Preserve diagnostic mode for existing tests.
+    if (requestRegistry_ == nullptr)
+    {
+        ++workingStatistics_.observedRequests;
+
+        return 0;
+    }
+
+    uint64_t lbRequestId = 0;
+
+    const int result =
+        requestRegistry_->submit(
+            connection.getSocket(),
+            connection.sessionId,
+            request,
+            lbRequestId
+        );
+
+    if (result != 0)
+    {
+        return result;
+    }
+
+    ++workingStatistics_.observedRequests;
+
+    return 0;
+}
+
+// Releases a locally owned connection.
 void TurReceiver::closeConnection(
     std::size_t index,
     bool rejected
@@ -708,6 +809,16 @@ void TurReceiver::closeConnection(
 
     if (connection->role == ConnectionRole::User)
     {
+        // Mark all requests from this session as disconnected
+        // before releasing the underlying socket.
+        if (requestRegistry_ != nullptr &&
+            connection->sessionId != 0)
+        {
+            requestRegistry_->markUserDisconnected(
+                connection->sessionId
+            );
+        }
+
         --workingStatistics_.activeUsers;
     }
     else
@@ -733,7 +844,7 @@ void TurReceiver::closeConnection(
     connections_[index] = nullptr;
 }
 
-// Finds an available connection slot.
+// Finds an unused connection slot.
 std::size_t TurReceiver::findFreeSlot()
 const noexcept
 {

@@ -1,4 +1,3 @@
-#include "pch.h"
 #include <winsock2.h>
 #include <Windows.h>
 
@@ -8,6 +7,7 @@
 #include "ConnectionHandoff.h"
 #include "TurReceiver.h"
 #include "TwrReceiver.h"
+#include "RequestRegistry.h"
 #include "Constants.h"
 
 namespace
@@ -33,11 +33,13 @@ namespace
         }
 
         default:
+        {
             return FALSE;
+        }
         }
     }
 
-    // Checks whether shutdown has been requested.
+    // Checks whether shutdown was requested.
     bool isShutdownRequested()
     {
         return InterlockedCompareExchange(
@@ -47,7 +49,7 @@ namespace
         ) != 0;
     }
 
-    // Detects changes in the TUR diagnostic statistics.
+    // Detects changes in TUR statistics.
     bool turStatisticsChanged(
         const TurStatistics& previous,
         const TurStatistics& current
@@ -73,7 +75,7 @@ namespace
             current.lastError;
     }
 
-    // Detects changes in the TWR diagnostic statistics.
+    // Detects changes in TWR statistics.
     bool twrStatisticsChanged(
         const TwrStatistics& previous,
         const TwrStatistics& current
@@ -102,15 +104,16 @@ namespace
             current.lastError;
     }
 
-    // Prints the current receiver statistics.
+    // Prints receiver and request registry statistics.
     void printStatistics(
         const TurStatistics& tur,
-        const TwrStatistics& twr
+        const TwrStatistics& twr,
+        RequestRegistry& registry
     )
     {
         std::cout
             << "\n--------------------------------\n"
-            << "[LB] Receiver statistics\n"
+            << "[LB] System statistics\n"
             << "--------------------------------\n"
 
             << "[TUR] Pending connections: "
@@ -122,11 +125,13 @@ namespace
             << "[TUR] Handed-off workers: "
             << tur.handedOffWorkers << "\n"
 
-            << "[TUR] Observed requests: "
+            << "[TUR] Accepted requests: "
             << tur.observedRequests << "\n"
 
             << "[TUR] Rejected connections: "
             << tur.rejectedConnections << "\n"
+
+            << "\n"
 
             << "[TWR] Active workers: "
             << twr.activeWorkers << "\n"
@@ -146,18 +151,62 @@ namespace
             << "[TWR] Observed results: "
             << twr.observedResults << "\n"
 
+            << "\n"
+
+            << "[REGISTRY] Stored requests: "
+            << registry.size() << "\n"
+
+            << "[QUEUE] QH (HIGH): "
+            << registry.getQueueSize(
+                Priority::HIGH) << "\n"
+
+            << "[QUEUE] QM (MEDIUM): "
+            << registry.getQueueSize(
+                Priority::MEDIUM) << "\n"
+
+            << "[QUEUE] QL (LOW): "
+            << registry.getQueueSize(
+                Priority::LOW) << "\n"
+
             << "--------------------------------\n";
     }
 
-    // Runs the load balancer receiver subsystem.
+    // Runs the load balancer subsystem.
     int runServer()
     {
+        // STEP 1: Initialize shared system state.
+        // The registry must outlive all receiver threads.
+        RequestRegistry requestRegistry;
+
+        if (!requestRegistry.isValid())
+        {
+            std::cerr
+                << "[ERROR] Request registry initialization failed."
+                << " Error: "
+                << requestRegistry.getFatalError()
+                << "\n";
+
+            return 1;
+        }
+
+        std::cout
+            << "[LB] Request Registry initialized successfully.\n"
+
+            << "[LB] Priority queues initialized successfully.\n"
+
+            << "[LB] Request semaphore initialized successfully.\n";
+
         ConnectionHandoff handoff;
 
-        TurReceiver tur(handoff);
+        // TUR now receives the real request registry.
+        TurReceiver tur(
+            handoff,
+            requestRegistry
+        );
+
         TwrReceiver twr(handoff);
 
-        // STEP 1: Start the worker receiver first.
+        // STEP 2: Start TWR.
         int result = twr.start();
 
         if (result != 0)
@@ -172,7 +221,7 @@ namespace
         std::cout
             << "[LB] TWR thread started successfully.\n";
 
-        // STEP 2: Start the user receiver and listener.
+        // STEP 3: Start TUR and the TCP listener.
         result = tur.start(
             "0.0.0.0",
             Constants::SERVER_PORT
@@ -212,6 +261,9 @@ namespace
             << "[LB] Maximum TWR workers: "
             << TwrReceiver::MAX_WORKERS << "\n"
 
+            << "[LB] Maximum stored requests: "
+            << RequestRegistry::MAX_REQUESTS << "\n"
+
             << "[LB] Server is running.\n"
             << "[LB] Press Ctrl+C to stop the server.\n";
 
@@ -225,10 +277,11 @@ namespace
 
         printStatistics(
             previousTur,
-            previousTwr
+            previousTwr,
+            requestRegistry
         );
 
-        // STEP 3: Monitor receiver health and statistics.
+        // STEP 4: Monitor system state.
         while (!isShutdownRequested())
         {
             const TurStatistics currentTur =
@@ -244,10 +297,12 @@ namespace
             {
                 printStatistics(
                     currentTur,
-                    currentTwr
+                    currentTwr,
+                    requestRegistry
                 );
 
                 previousTur = currentTur;
+
                 previousTwr = currentTwr;
             }
 
@@ -275,15 +330,28 @@ namespace
                 break;
             }
 
-            // Only diagnostic monitoring happens here.
-            // Network reception runs in TUR and TWR.
+            const int registryError =
+                requestRegistry.getFatalError();
+
+            if (registryError != 0)
+            {
+                std::cerr
+                    << "[ERROR] Request Registry failure."
+                    << " Error: "
+                    << registryError << "\n";
+
+                exitCode = 1;
+
+                break;
+            }
+
             Sleep(100);
         }
 
         std::cout
             << "\n[LB] Shutdown requested.\n";
 
-        // STEP 4: Stop accepting and receiving user requests.
+        // STEP 5: Stop receiving user requests.
         std::cout
             << "[LB] Stopping TUR thread...\n";
 
@@ -303,13 +371,13 @@ namespace
                 << "[LB] TUR thread stopped.\n";
         }
 
-        // STEP 5: Prevent further connection transfers.
+        // STEP 6: Disable new worker connection transfers.
         handoff.seal();
 
         std::cout
             << "[LB] Connection handoff sealed.\n";
 
-        // STEP 6: Stop worker reception.
+        // STEP 7: Stop worker reception.
         std::cout
             << "[LB] Stopping TWR thread...\n";
 
@@ -329,10 +397,11 @@ namespace
                 << "[LB] TWR thread stopped.\n";
         }
 
-        // STEP 7: Print final diagnostic statistics.
+        // STEP 8: Print final system statistics.
         printStatistics(
             tur.getStatistics(),
-            twr.getStatistics()
+            twr.getStatistics(),
+            requestRegistry
         );
 
         if (handoff.isEmpty())
@@ -348,7 +417,14 @@ namespace
             exitCode = 1;
         }
 
-        // All local objects are destroyed before Winsock cleanup.
+        std::cout
+            << "[LB] Remaining stored requests: "
+            << requestRegistry.size() << "\n"
+
+            << "[LB] Request registry resources will be released.\n";
+
+        // Receiver objects are destroyed before the registry.
+        // All local resources are released before WSACleanup.
         return exitCode;
     }
 }
@@ -360,7 +436,6 @@ int main()
         << "          LOAD BALANCER          \n"
         << "================================\n\n";
 
-    // Initialize Winsock before creating receiver objects.
     WinsockContext winsock;
 
     int result = winsock.initialize();
@@ -377,7 +452,6 @@ int main()
     std::cout
         << "[LB] Winsock initialized successfully.\n";
 
-    // Register the console shutdown handler.
     if (!SetConsoleCtrlHandler(
         consoleControlHandler,
         TRUE))
@@ -391,7 +465,6 @@ int main()
 
     int exitCode = runServer();
 
-    // Receiver objects have already been destroyed.
     result = winsock.cleanup();
 
     if (result != 0)
