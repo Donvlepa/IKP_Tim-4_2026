@@ -60,6 +60,9 @@
     <ClInclude Include="WinsockContext.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="SocketUtils.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Common.cpp">
@@ -81,6 +84,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="WinsockContext.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="SocketUtils.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

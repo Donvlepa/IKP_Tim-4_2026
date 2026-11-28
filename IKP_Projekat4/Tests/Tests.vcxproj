@@ -142,6 +142,7 @@
     <ClCompile Include="QueueTests.cpp" />
     <ClCompile Include="RequestEntryTests.cpp" />
     <ClCompile Include="RequestTests.cpp" />
+    <ClCompile Include="SocketUtilsTests.cpp" />
     <ClCompile Include="Tests.cpp" />
     <ClCompile Include="WinsockContextTests.cpp" />
     <ClCompile Include="WorkerEntryTests.cpp" />

@@ -46,6 +46,9 @@ int main()
     std::cout << "\n[WINSOCK CONTEXT]\n";
     runWinsockContextTests();
 
+    std::cout << "\n[SOCKET UTILS]\n";
+    runSocketUtilsTests();
+
     std::cout << "\n================================\n";
     std::cout << "All tests passed successfully.\n";
     std::cout << "================================\n";

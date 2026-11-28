@@ -38,3 +38,6 @@ void runMessageBufferTests();
 
 // Runs Winsock context tests.
 void runWinsockContextTests();
+
+// Runs socket utility tests.
+void runSocketUtilsTests();
