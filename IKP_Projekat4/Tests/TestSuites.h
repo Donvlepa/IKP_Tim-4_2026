@@ -80,3 +80,6 @@ void runTurRequestIntegrationTests();
 
 // Runs worker registry tests.
 void runWorkerRegistryTests();
+
+// Runs TWR worker registry integration tests.
+void runTwrWorkerIntegrationTests();

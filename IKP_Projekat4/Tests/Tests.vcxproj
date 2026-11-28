@@ -158,6 +158,7 @@
     <ClCompile Include="TurReceiverTests.cpp" />
     <ClCompile Include="TurRequestIntegrationTests.cpp" />
     <ClCompile Include="TwrReceiverTests.cpp" />
+    <ClCompile Include="TwrWorkerIntegrationTests.cpp" />
     <ClCompile Include="WinsockContextTests.cpp" />
     <ClCompile Include="WorkerEntryTests.cpp" />
     <ClCompile Include="WorkerRegistrationTests.cpp" />

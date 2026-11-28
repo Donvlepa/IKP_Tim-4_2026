@@ -20,11 +20,12 @@ namespace
     constexpr int MAX_MESSAGES_PER_POLL = 16;
 }
 
-// Initializes an inactive TWR receiver.
+// Initializes TWR in diagnostic mode.
 TwrReceiver::TwrReceiver(
     ConnectionHandoff& handoff
 ) noexcept
     : handoff_(handoff),
+    workerRegistry_(nullptr),
     workers_{},
     nextSessionId_(1),
     stopEvent_(nullptr),
@@ -36,7 +37,17 @@ TwrReceiver::TwrReceiver(
     InitializeCriticalSection(&statisticsLock_);
 }
 
-// Stops the thread before destroying shared state.
+// Initializes TWR with a shared worker registry.
+TwrReceiver::TwrReceiver(
+    ConnectionHandoff& handoff,
+    WorkerRegistry& workerRegistry
+) noexcept
+    : TwrReceiver(handoff)
+{
+    workerRegistry_ = &workerRegistry;
+}
+
+// Stops the receiver before releasing shared resources.
 TwrReceiver::~TwrReceiver() noexcept
 {
     stop();
@@ -49,7 +60,7 @@ TwrReceiver::~TwrReceiver() noexcept
     DeleteCriticalSection(&statisticsLock_);
 }
 
-// Starts the actual TWR thread.
+// Starts the TWR thread.
 int TwrReceiver::start()
 {
     if (thread_ != nullptr ||
@@ -57,6 +68,18 @@ int TwrReceiver::start()
         handoff_.isSealed())
     {
         return WSAEINVAL;
+    }
+
+    // Production mode requires a valid worker registry.
+    if (workerRegistry_ != nullptr &&
+        !workerRegistry_->isValid())
+    {
+        const int error =
+            workerRegistry_->getFatalError();
+
+        return error != 0
+            ? error
+            : WSAEINVAL;
     }
 
     workingStatistics_ = TwrStatistics{};
@@ -137,8 +160,8 @@ int TwrReceiver::stop() noexcept
 
     int result = getStatistics().lastError;
 
-    // Once the handoff is sealed, no new connections
-    // can be transferred into the queue.
+    // Release connections that were never adopted.
+    // These connections have not been registered yet.
     if (handoff_.isSealed())
     {
         ConnectionContext* connection = nullptr;
@@ -159,6 +182,12 @@ int TwrReceiver::stop() noexcept
         }
     }
 
+    if (result == 0 &&
+        workerRegistry_ != nullptr)
+    {
+        result = workerRegistry_->getFatalError();
+    }
+
     return result;
 }
 
@@ -176,7 +205,7 @@ noexcept
     return result;
 }
 
-// Returns a synchronized copy of worker information.
+// Returns a synchronized diagnostic worker snapshot.
 bool TwrReceiver::getWorker(
     uint64_t workerId,
     TwrWorkerInfo& information
@@ -212,7 +241,7 @@ bool TwrReceiver::getWorker(
     return false;
 }
 
-// Publishes a consistent diagnostic snapshot.
+// Publishes consistent diagnostic information.
 void TwrReceiver::publishStatistics() noexcept
 {
     EnterCriticalSection(&statisticsLock_);
@@ -252,7 +281,7 @@ unsigned __stdcall TwrReceiver::threadEntry(
     return receiver->run();
 }
 
-// Executes the TWR event loop.
+// Runs the TWR event loop.
 unsigned TwrReceiver::run()
 {
     while (!shutdownRequested())
@@ -274,7 +303,7 @@ unsigned TwrReceiver::run()
         }
     }
 
-    // Release all sockets owned by TWR.
+    // Close only sockets owned by TWR.
     for (std::size_t i = 0;
         i < MAX_WORKERS;
         ++i)
@@ -289,15 +318,25 @@ unsigned TwrReceiver::run()
         : 1;
 }
 
-// Processes one TWR event-loop iteration.
+// Processes one TWR polling iteration.
 int TwrReceiver::pollOnce()
 {
-    // Take ownership of pending worker connections.
     adoptConnections();
 
     if (workingStatistics_.lastError != 0)
     {
         return workingStatistics_.lastError;
+    }
+
+    if (workerRegistry_ != nullptr)
+    {
+        const int registryError =
+            workerRegistry_->getFatalError();
+
+        if (registryError != 0)
+        {
+            return registryError;
+        }
     }
 
     if (shutdownRequested())
@@ -334,7 +373,7 @@ int TwrReceiver::pollOnce()
         }
     }
 
-    // Winsock select cannot wait on an empty socket set.
+    // Winsock select requires at least one socket.
     if (readSet.fd_count == 0)
     {
         const DWORD result =
@@ -351,8 +390,6 @@ int TwrReceiver::pollOnce()
         return 0;
     }
 
-    // Previously buffered messages must be processed
-    // even if the network socket is not readable.
     const uint32_t timeoutMs =
         hasBufferedWork || !handoff_.isEmpty()
         ? 0
@@ -386,7 +423,7 @@ int TwrReceiver::pollOnce()
         return 0;
     }
 
-    // Receive messages from active worker sockets.
+    // Process existing worker connections.
     for (std::size_t i = 0;
         i < MAX_WORKERS;
         ++i)
@@ -426,7 +463,50 @@ int TwrReceiver::pollOnce()
     return 0;
 }
 
-// Takes ownership of connections transferred by TUR.
+// Registers a worker and assigns a session identifier.
+int TwrReceiver::registerWorkerConnection(
+    ConnectionContext& connection,
+    uint64_t heartbeatTimeMs
+)
+{
+    // Production registration is handled by Worker Registry.
+    if (workerRegistry_ != nullptr)
+    {
+        uint64_t sessionId = 0;
+
+        const int result =
+            workerRegistry_->registerWorker(
+                connection.workerId,
+                connection.getSocket(),
+                heartbeatTimeMs,
+                sessionId
+            );
+
+        // A nonzero session identifies committed state,
+        // even if semaphore signaling failed afterward.
+        connection.sessionId = sessionId;
+
+        return result;
+    }
+
+    // Preserve diagnostic mode for previous tests.
+    if (workerExists(connection.workerId))
+    {
+        return WSAEALREADY;
+    }
+
+    if (nextSessionId_ == 0)
+    {
+        return WSAENOBUFS;
+    }
+
+    connection.sessionId =
+        nextSessionId_++;
+
+    return 0;
+}
+
+// Takes ownership of worker connections transferred by TUR.
 void TwrReceiver::adoptConnections()
 {
     for (int i = 0;
@@ -446,40 +526,64 @@ void TwrReceiver::adoptConnections()
             return;
         }
 
-        // Validate the handed-off context.
         if (!connection->hasSocket() ||
             connection->role != ConnectionRole::Worker ||
             connection->workerId == 0 ||
             connection->sessionId != 0)
         {
+            // Invalid handoff contexts are not registered.
+            connection->sessionId = 0;
+
             rejectConnection(connection);
 
             continue;
         }
 
-        // An active worker identifier must be unique.
-        if (workerExists(connection->workerId))
-        {
-            rejectConnection(connection);
-
-            continue;
-        }
-
+        // Check local socket capacity before registration.
         const std::size_t slot =
             findFreeSlot();
 
-        if (slot == MAX_WORKERS ||
-            nextSessionId_ == 0)
+        if (slot == MAX_WORKERS)
         {
             rejectConnection(connection);
 
             continue;
         }
 
-        // Assign a new session identifier.
-        connection->sessionId =
-            nextSessionId_++;
+        const uint64_t heartbeatTimeMs =
+            GetTickCount64();
 
+        const int result =
+            registerWorkerConnection(
+                *connection,
+                heartbeatTimeMs
+            );
+
+        if (result != 0)
+        {
+            if (workerRegistry_ != nullptr)
+            {
+                const int fatalError =
+                    workerRegistry_->getFatalError();
+
+                if (fatalError != 0)
+                {
+                    workingStatistics_.lastError =
+                        fatalError;
+                }
+            }
+
+            rejectConnection(connection);
+
+            if (workingStatistics_.lastError != 0)
+            {
+                return;
+            }
+
+            continue;
+        }
+
+        // Store the owned network connection locally.
         connection->needsDrain = true;
 
         WorkerSlot& worker = workers_[slot];
@@ -494,9 +598,8 @@ void TwrReceiver::adoptConnections()
         worker.information.sessionId =
             connection->sessionId;
 
-        // Registration time is the initial liveness baseline.
         worker.information.lastHeartbeatAt =
-            GetTickCount64();
+            heartbeatTimeMs;
 
         ++workingStatistics_.activeWorkers;
 
@@ -504,7 +607,45 @@ void TwrReceiver::adoptConnections()
     }
 }
 
-// Processes messages from one registered worker.
+// Updates the heartbeat of the matching worker session.
+bool TwrReceiver::handleHeartbeat(
+    WorkerSlot& worker
+) noexcept
+{
+    ConnectionContext* connection =
+        worker.connection;
+
+    if (connection == nullptr)
+    {
+        return false;
+    }
+
+    const uint64_t heartbeatTimeMs =
+        GetTickCount64();
+
+    if (workerRegistry_ != nullptr)
+    {
+        if (!workerRegistry_->updateHeartbeat(
+            connection->workerId,
+            connection->sessionId,
+            heartbeatTimeMs))
+        {
+            // The session is no longer active.
+            return false;
+        }
+    }
+
+    worker.information.lastHeartbeatAt =
+        heartbeatTimeMs;
+
+    ++worker.information.observedHeartbeats;
+
+    ++workingStatistics_.observedHeartbeats;
+
+    return true;
+}
+
+// Receives messages from one worker connection.
 void TwrReceiver::processWorker(
     std::size_t index
 )
@@ -572,8 +713,7 @@ void TwrReceiver::processWorker(
         }
 
         // STEP 1: Process heartbeat messages.
-        if (header.type ==
-            MessageType::HEARTBEAT)
+        if (header.type == MessageType::HEARTBEAT)
         {
             HeartbeatPayload heartbeat;
 
@@ -587,16 +727,15 @@ void TwrReceiver::processWorker(
                 return;
             }
 
-            worker.information.lastHeartbeatAt =
-                GetTickCount64();
+            if (!handleHeartbeat(worker))
+            {
+                closeWorker(index, false);
 
-            ++worker.information.observedHeartbeats;
-
-            ++workingStatistics_.observedHeartbeats;
+                return;
+            }
         }
-        // STEP 2: Process result messages.
-        else if (header.type ==
-            MessageType::RESULT)
+        // STEP 2: Observe result messages.
+        else if (header.type == MessageType::RESULT)
         {
             ResultPayload result;
 
@@ -610,8 +749,8 @@ void TwrReceiver::processWorker(
                 return;
             }
 
-            // Diagnostic observation only.
-            // Actual result validation is implemented later.
+            // Result processing and assignment validation
+            // will be implemented in a later phase.
             worker.information.lastLbRequestId =
                 result.lbRequestId;
 
@@ -624,8 +763,6 @@ void TwrReceiver::processWorker(
         }
         else
         {
-            // Registered workers may only send
-            // HEARTBEAT and RESULT messages.
             closeWorker(index, true);
 
             return;
@@ -639,11 +776,11 @@ void TwrReceiver::processWorker(
         }
     }
 
-    // More complete messages may already be buffered.
+    // Drain any remaining buffered messages later.
     connection->needsDrain = true;
 }
 
-// Releases a registered worker connection.
+// Releases an active worker connection.
 void TwrReceiver::closeWorker(
     std::size_t index,
     bool rejected
@@ -651,13 +788,32 @@ void TwrReceiver::closeWorker(
 {
     WorkerSlot& worker = workers_[index];
 
-    if (worker.connection == nullptr)
+    ConnectionContext* connection =
+        worker.connection;
+
+    if (connection == nullptr)
     {
         return;
     }
 
+    // Mark the session DEAD before closing its socket.
+    if (workerRegistry_ != nullptr &&
+        connection->sessionId != 0)
+    {
+        WorkerEntry previousState;
+
+        workerRegistry_->markDead(
+            connection->workerId,
+            connection->sessionId,
+            previousState
+        );
+
+        // Recovery of an assigned request will be
+        // implemented together with dispatch and failure handling.
+    }
+
     const int result =
-        worker.connection->close();
+        connection->close();
 
     if (result != 0 &&
         workingStatistics_.lastError == 0)
@@ -666,7 +822,7 @@ void TwrReceiver::closeWorker(
             result;
     }
 
-    delete worker.connection;
+    delete connection;
 
     worker.connection = nullptr;
 
@@ -682,7 +838,7 @@ void TwrReceiver::closeWorker(
     }
 }
 
-// Releases an unaccepted worker connection.
+// Releases a rejected worker connection.
 void TwrReceiver::rejectConnection(
     ConnectionContext* connection
 ) noexcept
@@ -694,7 +850,22 @@ void TwrReceiver::rejectConnection(
 
     ++workingStatistics_.rejectedWorkers;
 
-    const int result = connection->close();
+    // Registration may have committed before a fatal
+    // semaphore error occurred.
+    if (workerRegistry_ != nullptr &&
+        connection->sessionId != 0)
+    {
+        WorkerEntry previousState;
+
+        workerRegistry_->markDead(
+            connection->workerId,
+            connection->sessionId,
+            previousState
+        );
+    }
+
+    const int result =
+        connection->close();
 
     if (result != 0 &&
         workingStatistics_.lastError == 0)
@@ -706,7 +877,7 @@ void TwrReceiver::rejectConnection(
     delete connection;
 }
 
-// Finds an unused worker slot.
+// Finds an unused local socket slot.
 std::size_t TwrReceiver::findFreeSlot()
 const noexcept
 {
@@ -723,7 +894,7 @@ const noexcept
     return MAX_WORKERS;
 }
 
-// Checks whether a worker identifier is already active.
+// Checks for a duplicate worker in diagnostic mode.
 bool TwrReceiver::workerExists(
     uint64_t workerId
 ) const noexcept

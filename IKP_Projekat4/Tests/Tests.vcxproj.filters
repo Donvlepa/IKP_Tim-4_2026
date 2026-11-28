@@ -99,6 +99,9 @@
     <ClCompile Include="WorkerRegistryTests.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="TwrWorkerIntegrationTests.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="TestSuites.h">

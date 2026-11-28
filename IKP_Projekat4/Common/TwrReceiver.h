@@ -8,8 +8,9 @@
 
 #include "ConnectionContext.h"
 #include "ConnectionHandoff.h"
+#include "WorkerRegistry.h"
 
-// Contains a diagnostic snapshot of an active worker.
+// Contains diagnostic information about an active worker.
 struct TwrWorkerInfo
 {
     uint64_t workerId = 0;
@@ -39,15 +40,22 @@ struct TwrStatistics
     int lastError = 0;
 };
 
-// Receives messages from registered worker connections.
+// Receives messages from worker connections.
 class TwrReceiver
 {
 public:
     static constexpr std::size_t MAX_WORKERS =
         FD_SETSIZE - 1;
 
+    // Diagnostic mode used by existing receiver tests.
     explicit TwrReceiver(
         ConnectionHandoff& handoff
+    ) noexcept;
+
+    // Production mode with a shared worker registry.
+    TwrReceiver(
+        ConnectionHandoff& handoff,
+        WorkerRegistry& workerRegistry
     ) noexcept;
 
     ~TwrReceiver() noexcept;
@@ -62,18 +70,12 @@ public:
     TwrReceiver& operator=(
         TwrReceiver&&) = delete;
 
-    // Starts the TWR thread.
     int start();
 
-    // Stops the TWR thread and releases its connections.
-    // Stop TUR before stopping TWR in the complete server.
     int stop() noexcept;
 
-    // Returns a synchronized statistics snapshot.
     TwrStatistics getStatistics() noexcept;
 
-    // Copies information about an active worker.
-    // Returns false if the worker does not exist.
     bool getWorker(
         uint64_t workerId,
         TwrWorkerInfo& information
@@ -89,17 +91,19 @@ private:
 
     ConnectionHandoff& handoff_;
 
+    // Borrowed registry; must outlive the receiver.
+    WorkerRegistry* workerRegistry_;
+
     WorkerSlot workers_[MAX_WORKERS];
 
+    // Used only in diagnostic mode.
     uint64_t nextSessionId_;
 
     HANDLE stopEvent_;
     HANDLE thread_;
 
-    // State modified exclusively by TWR.
     TwrStatistics workingStatistics_;
 
-    // Synchronized diagnostic snapshots.
     TwrStatistics publishedStatistics_;
 
     TwrWorkerInfo publishedWorkers_[MAX_WORKERS];
@@ -117,6 +121,17 @@ private:
     void adoptConnections();
 
     void processWorker(std::size_t index);
+
+    // Registers the worker and assigns its session.
+    int registerWorkerConnection(
+        ConnectionContext& connection,
+        uint64_t heartbeatTimeMs
+    );
+
+    // Updates the worker registry and diagnostic state.
+    bool handleHeartbeat(
+        WorkerSlot& worker
+    ) noexcept;
 
     void closeWorker(
         std::size_t index,

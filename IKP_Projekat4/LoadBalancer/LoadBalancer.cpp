@@ -8,6 +8,7 @@
 #include "TurReceiver.h"
 #include "TwrReceiver.h"
 #include "RequestRegistry.h"
+#include "WorkerRegistry.h"
 #include "Constants.h"
 
 namespace
@@ -25,17 +26,14 @@ namespace
         case CTRL_BREAK_EVENT:
         {
             InterlockedExchange(
-                &shutdownRequested,
-                1
+                &shutdownRequested, 1
             );
 
             return TRUE;
         }
 
         default:
-        {
             return FALSE;
-        }
         }
     }
 
@@ -104,84 +102,100 @@ namespace
             current.lastError;
     }
 
-    // Prints receiver and request registry statistics.
+    // Prints receiver and registry statistics.
     void printStatistics(
         const TurStatistics& tur,
         const TwrStatistics& twr,
-        RequestRegistry& registry
+        RequestRegistry& requests,
+        WorkerRegistry& workers
     )
     {
         std::cout
-            << "\n--------------------------------\n"
-            << "[LB] System statistics\n"
-            << "--------------------------------\n"
+            << "\n================================\n"
+            << "       LB SYSTEM STATISTICS\n"
+            << "================================\n"
 
-            << "[TUR] Pending connections: "
+            << "\n[TUR]\n"
+
+            << "Pending connections: "
             << tur.pendingConnections << "\n"
 
-            << "[TUR] Active users: "
+            << "Active users: "
             << tur.activeUsers << "\n"
 
-            << "[TUR] Handed-off workers: "
+            << "Handed-off workers: "
             << tur.handedOffWorkers << "\n"
 
-            << "[TUR] Accepted requests: "
+            << "Accepted requests: "
             << tur.observedRequests << "\n"
 
-            << "[TUR] Rejected connections: "
+            << "Rejected connections: "
             << tur.rejectedConnections << "\n"
 
-            << "\n"
+            << "\n[TWR]\n"
 
-            << "[TWR] Active workers: "
+            << "Active worker connections: "
             << twr.activeWorkers << "\n"
 
-            << "[TWR] Registered worker sessions: "
+            << "Registered worker sessions: "
             << twr.registeredWorkers << "\n"
 
-            << "[TWR] Disconnected workers: "
+            << "Disconnected workers: "
             << twr.disconnectedWorkers << "\n"
 
-            << "[TWR] Rejected workers: "
+            << "Rejected workers: "
             << twr.rejectedWorkers << "\n"
 
-            << "[TWR] Observed heartbeats: "
+            << "Observed heartbeats: "
             << twr.observedHeartbeats << "\n"
 
-            << "[TWR] Observed results: "
+            << "Observed results: "
             << twr.observedResults << "\n"
 
-            << "\n"
+            << "\n[REQUEST REGISTRY]\n"
 
-            << "[REGISTRY] Stored requests: "
-            << registry.size() << "\n"
+            << "Stored requests: "
+            << requests.size() << "\n"
 
-            << "[QUEUE] QH (HIGH): "
-            << registry.getQueueSize(
+            << "QH (HIGH): "
+            << requests.getQueueSize(
                 Priority::HIGH) << "\n"
 
-            << "[QUEUE] QM (MEDIUM): "
-            << registry.getQueueSize(
+            << "QM (MEDIUM): "
+            << requests.getQueueSize(
                 Priority::MEDIUM) << "\n"
 
-            << "[QUEUE] QL (LOW): "
-            << registry.getQueueSize(
+            << "QL (LOW): "
+            << requests.getQueueSize(
                 Priority::LOW) << "\n"
 
-            << "--------------------------------\n";
+            << "\n[WORKER REGISTRY]\n"
+
+            << "Stored worker records: "
+            << workers.size() << "\n"
+
+            << "Active workers: "
+            << workers.getActiveWorkerCount() << "\n"
+
+            << "Free workers: "
+            << workers.getFreeWorkerCount() << "\n"
+
+            << "Free Worker Queue items: "
+            << workers.getFreeQueueSize() << "\n"
+
+            << "================================\n";
     }
 
     // Runs the load balancer subsystem.
     int runServer()
     {
-        // STEP 1: Initialize shared system state.
-        // The registry must outlive all receiver threads.
+        // STEP 1: Initialize shared registries.
         RequestRegistry requestRegistry;
 
         if (!requestRegistry.isValid())
         {
             std::cerr
-                << "[ERROR] Request registry initialization failed."
+                << "[ERROR] Request Registry initialization failed."
                 << " Error: "
                 << requestRegistry.getFatalError()
                 << "\n";
@@ -189,24 +203,42 @@ namespace
             return 1;
         }
 
+        WorkerRegistry workerRegistry;
+
+        if (!workerRegistry.isValid())
+        {
+            std::cerr
+                << "[ERROR] Worker Registry initialization failed."
+                << " Error: "
+                << workerRegistry.getFatalError()
+                << "\n";
+
+            return 1;
+        }
+
         std::cout
-            << "[LB] Request Registry initialized successfully.\n"
+            << "[LB] Request Registry initialized.\n"
+            << "[LB] Priority queues initialized.\n"
+            << "[LB] semRequests initialized.\n"
 
-            << "[LB] Priority queues initialized successfully.\n"
+            << "[LB] Worker Registry initialized.\n"
+            << "[LB] Free Worker Queue initialized.\n"
+            << "[LB] semFreeWorkers initialized.\n";
 
-            << "[LB] Request semaphore initialized successfully.\n";
-
+        // Shared resources must outlive both receivers.
         ConnectionHandoff handoff;
 
-        // TUR now receives the real request registry.
         TurReceiver tur(
             handoff,
             requestRegistry
         );
 
-        TwrReceiver twr(handoff);
+        TwrReceiver twr(
+            handoff,
+            workerRegistry
+        );
 
-        // STEP 2: Start TWR.
+        // STEP 2: Start the worker receiver.
         int result = twr.start();
 
         if (result != 0)
@@ -221,7 +253,7 @@ namespace
         std::cout
             << "[LB] TWR thread started successfully.\n";
 
-        // STEP 3: Start TUR and the TCP listener.
+        // STEP 3: Start the user receiver and listener.
         result = tur.start(
             "0.0.0.0",
             Constants::SERVER_PORT
@@ -265,6 +297,7 @@ namespace
             << RequestRegistry::MAX_REQUESTS << "\n"
 
             << "[LB] Server is running.\n"
+
             << "[LB] Press Ctrl+C to stop the server.\n";
 
         int exitCode = 0;
@@ -278,10 +311,11 @@ namespace
         printStatistics(
             previousTur,
             previousTwr,
-            requestRegistry
+            requestRegistry,
+            workerRegistry
         );
 
-        // STEP 4: Monitor system state.
+        // STEP 4: Monitor receiver and registry health.
         while (!isShutdownRequested())
         {
             const TurStatistics currentTur =
@@ -298,7 +332,8 @@ namespace
                 printStatistics(
                     currentTur,
                     currentTwr,
-                    requestRegistry
+                    requestRegistry,
+                    workerRegistry
                 );
 
                 previousTur = currentTur;
@@ -330,15 +365,30 @@ namespace
                 break;
             }
 
-            const int registryError =
+            const int requestError =
                 requestRegistry.getFatalError();
 
-            if (registryError != 0)
+            if (requestError != 0)
             {
                 std::cerr
                     << "[ERROR] Request Registry failure."
                     << " Error: "
-                    << registryError << "\n";
+                    << requestError << "\n";
+
+                exitCode = 1;
+
+                break;
+            }
+
+            const int workerError =
+                workerRegistry.getFatalError();
+
+            if (workerError != 0)
+            {
+                std::cerr
+                    << "[ERROR] Worker Registry failure."
+                    << " Error: "
+                    << workerError << "\n";
 
                 exitCode = 1;
 
@@ -351,7 +401,7 @@ namespace
         std::cout
             << "\n[LB] Shutdown requested.\n";
 
-        // STEP 5: Stop receiving user requests.
+        // STEP 5: Stop accepting new connections.
         std::cout
             << "[LB] Stopping TUR thread...\n";
 
@@ -371,7 +421,7 @@ namespace
                 << "[LB] TUR thread stopped.\n";
         }
 
-        // STEP 6: Disable new worker connection transfers.
+        // STEP 6: Prevent further worker handoffs.
         handoff.seal();
 
         std::cout
@@ -397,22 +447,32 @@ namespace
                 << "[LB] TWR thread stopped.\n";
         }
 
-        // STEP 8: Print final system statistics.
+        // STEP 8: Print final statistics.
         printStatistics(
             tur.getStatistics(),
             twr.getStatistics(),
-            requestRegistry
+            requestRegistry,
+            workerRegistry
         );
 
-        if (handoff.isEmpty())
+        if (!handoff.isEmpty())
+        {
+            std::cerr
+                << "[ERROR] Connection handoff is not empty.\n";
+
+            exitCode = 1;
+        }
+        else
         {
             std::cout
                 << "[LB] Connection handoff is empty.\n";
         }
-        else
+
+        if (workerRegistry.getActiveWorkerCount() != 0 ||
+            workerRegistry.getFreeWorkerCount() != 0)
         {
             std::cerr
-                << "[ERROR] Connection handoff is not empty.\n";
+                << "[ERROR] Worker Registry retained active workers.\n";
 
             exitCode = 1;
         }
@@ -421,10 +481,13 @@ namespace
             << "[LB] Remaining stored requests: "
             << requestRegistry.size() << "\n"
 
-            << "[LB] Request registry resources will be released.\n";
+            << "[LB] Remaining worker records: "
+            << workerRegistry.size() << "\n"
 
-        // Receiver objects are destroyed before the registry.
-        // All local resources are released before WSACleanup.
+            << "[LB] Registry and queue resources will be released.\n";
+
+        // Receivers are destroyed before shared registries.
+        // All resources are released before WSACleanup.
         return exitCode;
     }
 }
