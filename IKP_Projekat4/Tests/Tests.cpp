@@ -73,6 +73,9 @@ int main()
     std::cout << "\n[CONNECTION HANDOFF]\n";
     runConnectionHandoffTests();
 
+    std::cout << "\n[TUR RECEIVER]\n";
+    runTurReceiverTests();
+
     std::cout << "\n================================\n";
     std::cout << "All tests passed successfully.\n";
     std::cout << "================================\n";

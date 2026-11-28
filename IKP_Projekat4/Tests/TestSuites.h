@@ -65,3 +65,6 @@ void runRegistrationServerTests();
 
 // Runs connection handoff tests.
 void runConnectionHandoffTests();
+
+// Runs TUR receiver tests.
+void runTurReceiverTests();
