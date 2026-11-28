@@ -54,6 +54,9 @@
     <ClCompile Include="MessageBufferTests.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="WinsockContextTests.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="TestSuites.h">

@@ -143,6 +143,7 @@
     <ClCompile Include="RequestEntryTests.cpp" />
     <ClCompile Include="RequestTests.cpp" />
     <ClCompile Include="Tests.cpp" />
+    <ClCompile Include="WinsockContextTests.cpp" />
     <ClCompile Include="WorkerEntryTests.cpp" />
   </ItemGroup>
   <ItemGroup>

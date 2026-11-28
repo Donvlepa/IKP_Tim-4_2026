@@ -43,6 +43,9 @@ int main()
     std::cout << "\n[MESSAGE BUFFER]\n";
     runMessageBufferTests();
 
+    std::cout << "\n[WINSOCK CONTEXT]\n";
+    runWinsockContextTests();
+
     std::cout << "\n================================\n";
     std::cout << "All tests passed successfully.\n";
     std::cout << "================================\n";

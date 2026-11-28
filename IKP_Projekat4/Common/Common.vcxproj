@@ -148,6 +148,7 @@
     <ClInclude Include="Queue.h" />
     <ClInclude Include="Request.h" />
     <ClInclude Include="RequestEntry.h" />
+    <ClInclude Include="WinsockContext.h" />
     <ClInclude Include="WorkerEntry.h" />
   </ItemGroup>
   <ItemGroup>
@@ -162,6 +163,7 @@
     </ClCompile>
     <ClCompile Include="Protocol.cpp" />
     <ClCompile Include="RequestEntry.cpp" />
+    <ClCompile Include="WinsockContext.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

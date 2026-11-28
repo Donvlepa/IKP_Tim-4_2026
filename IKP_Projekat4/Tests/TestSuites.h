@@ -35,3 +35,6 @@ void runPayloadCodecTests();
 
 // Runs message buffer tests.
 void runMessageBufferTests();
+
+// Runs Winsock context tests.
+void runWinsockContextTests();
