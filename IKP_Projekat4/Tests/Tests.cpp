@@ -55,6 +55,9 @@ int main()
     std::cout << "\n[MESSAGE IO]\n";
     runMessageIOTests();
 
+    std::cout << "\n[NETWORK INTEGRATION]\n";
+    runNetworkIntegrationTests();
+
     std::cout << "\n================================\n";
     std::cout << "All tests passed successfully.\n";
     std::cout << "================================\n";

@@ -47,3 +47,6 @@ void runSendUtilsTests();
 
 // Runs network message input and output tests.
 void runMessageIOTests();
+
+// Runs network integration tests.
+void runNetworkIntegrationTests();

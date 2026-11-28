@@ -140,6 +140,7 @@
     <ClCompile Include="MessageBufferTests.cpp" />
     <ClCompile Include="MessageHeaderTests.cpp" />
     <ClCompile Include="MessageIOTests.cpp" />
+    <ClCompile Include="NetworkIntegrationTests.cpp" />
     <ClCompile Include="PayloadCodecTests.cpp" />
     <ClCompile Include="PayloadTests.cpp" />
     <ClCompile Include="ProtocolTests.cpp" />
