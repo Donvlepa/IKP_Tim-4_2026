@@ -64,6 +64,9 @@ int main()
     std::cout << "\n[TCP CLIENT]\n";
     runTcpClientTests();
 
+    std::cout << "\n[WORKER REGISTRATION]\n";
+    runWorkerRegistrationTests();
+
     std::cout << "\n================================\n";
     std::cout << "All tests passed successfully.\n";
     std::cout << "================================\n";

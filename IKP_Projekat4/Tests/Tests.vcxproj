@@ -154,6 +154,7 @@
     <ClCompile Include="Tests.cpp" />
     <ClCompile Include="WinsockContextTests.cpp" />
     <ClCompile Include="WorkerEntryTests.cpp" />
+    <ClCompile Include="WorkerRegistrationTests.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Common\Common.vcxproj">
