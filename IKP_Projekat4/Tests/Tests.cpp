@@ -31,6 +31,18 @@ int main()
     std::cout << "\n[HASH MAP]\n";
     runHashMapTests();
 
+    std::cout << "\n[PROTOCOL]\n";
+    runProtocolTests();
+
+    std::cout << "\n[PAYLOADS]\n";
+    runPayloadTests();
+
+    std::cout << "\n[PAYLOAD CODEC]\n";
+    runPayloadCodecTests();
+
+    std::cout << "\n[MESSAGE BUFFER]\n";
+    runMessageBufferTests();
+
     std::cout << "\n================================\n";
     std::cout << "All tests passed successfully.\n";
     std::cout << "================================\n";
