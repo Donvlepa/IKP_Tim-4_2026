@@ -152,6 +152,7 @@
     <ClInclude Include="RegistrationServer.h" />
     <ClInclude Include="Request.h" />
     <ClInclude Include="RequestEntry.h" />
+    <ClInclude Include="RequestRegistry.h" />
     <ClInclude Include="SendUtils.h" />
     <ClInclude Include="SocketUtils.h" />
     <ClInclude Include="TcpClient.h" />
@@ -177,6 +178,7 @@
     <ClCompile Include="Protocol.cpp" />
     <ClCompile Include="RegistrationServer.cpp" />
     <ClCompile Include="RequestEntry.cpp" />
+    <ClCompile Include="RequestRegistry.cpp" />
     <ClCompile Include="SendUtils.cpp" />
     <ClCompile Include="SocketUtils.cpp" />
     <ClCompile Include="TcpClient.cpp" />

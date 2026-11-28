@@ -79,6 +79,9 @@ int main()
     std::cout << "\n[TWR RECEIVER]\n";
     runTwrReceiverTests();
 
+    std::cout << "\n[REQUEST REGISTRY]\n";
+    runRequestRegistryTests();
+
     std::cout << "\n================================\n";
     std::cout << "All tests passed successfully.\n";
     std::cout << "================================\n";

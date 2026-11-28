@@ -71,3 +71,6 @@ void runTurReceiverTests();
 
 // Runs TWR receiver tests.
 void runTwrReceiverTests();
+
+// Runs request registry tests.
+void runRequestRegistryTests();
