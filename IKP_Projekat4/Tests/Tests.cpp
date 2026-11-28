@@ -91,6 +91,9 @@ int main()
     std::cout << "\n[TWR WORKER INTEGRATION]\n";
     runTwrWorkerIntegrationTests();
 
+    std::cout << "\n[RECEIVER SYSTEM INTEGRATION]\n";
+    runReceiverSystemIntegrationTests();
+
     std::cout << "\n================================\n";
     std::cout << "All tests passed successfully.\n";
     std::cout << "================================\n";

@@ -83,3 +83,6 @@ void runWorkerRegistryTests();
 
 // Runs TWR worker registry integration tests.
 void runTwrWorkerIntegrationTests();
+
+// Runs complete receiver system integration tests.
+void runReceiverSystemIntegrationTests();
