@@ -149,6 +149,7 @@
     <ClCompile Include="RequestTests.cpp" />
     <ClCompile Include="SendUtilsTests.cpp" />
     <ClCompile Include="SocketUtilsTests.cpp" />
+    <ClCompile Include="TcpClientTests.cpp" />
     <ClCompile Include="TcpListenerTests.cpp" />
     <ClCompile Include="Tests.cpp" />
     <ClCompile Include="WinsockContextTests.cpp" />

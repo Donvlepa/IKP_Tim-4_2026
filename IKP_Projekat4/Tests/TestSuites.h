@@ -53,3 +53,6 @@ void runNetworkIntegrationTests();
 
 // Runs TCP listener tests.
 void runTcpListenerTests();
+
+// Runs TCP client tests.
+void runTcpClientTests();

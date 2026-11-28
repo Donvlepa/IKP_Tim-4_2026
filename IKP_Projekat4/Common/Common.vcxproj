@@ -151,6 +151,7 @@
     <ClInclude Include="RequestEntry.h" />
     <ClInclude Include="SendUtils.h" />
     <ClInclude Include="SocketUtils.h" />
+    <ClInclude Include="TcpClient.h" />
     <ClInclude Include="TcpListener.h" />
     <ClInclude Include="WinsockContext.h" />
     <ClInclude Include="WorkerEntry.h" />
@@ -170,6 +171,7 @@
     <ClCompile Include="RequestEntry.cpp" />
     <ClCompile Include="SendUtils.cpp" />
     <ClCompile Include="SocketUtils.cpp" />
+    <ClCompile Include="TcpClient.cpp" />
     <ClCompile Include="TcpListener.cpp" />
     <ClCompile Include="WinsockContext.cpp" />
   </ItemGroup>
