@@ -85,6 +85,9 @@ int main()
     std::cout << "\n[TUR REQUEST INTEGRATION]\n";
     runTurRequestIntegrationTests();
 
+    std::cout << "\n[WORKER REGISTRY]\n";
+    runWorkerRegistryTests();
+
     std::cout << "\n================================\n";
     std::cout << "All tests passed successfully.\n";
     std::cout << "================================\n";

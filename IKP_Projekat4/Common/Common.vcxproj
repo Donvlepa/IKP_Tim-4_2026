@@ -161,6 +161,7 @@
     <ClInclude Include="TwrReceiver.h" />
     <ClInclude Include="WinsockContext.h" />
     <ClInclude Include="WorkerEntry.h" />
+    <ClInclude Include="WorkerRegistry.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Common.cpp" />
@@ -186,6 +187,7 @@
     <ClCompile Include="TurReceiver.cpp" />
     <ClCompile Include="TwrReceiver.cpp" />
     <ClCompile Include="WinsockContext.cpp" />
+    <ClCompile Include="WorkerRegistry.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

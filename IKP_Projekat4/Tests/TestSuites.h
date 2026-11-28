@@ -77,3 +77,6 @@ void runRequestRegistryTests();
 
 // Runs TUR request integration tests.
 void runTurRequestIntegrationTests();
+
+// Runs worker registry tests.
+void runWorkerRegistryTests();
