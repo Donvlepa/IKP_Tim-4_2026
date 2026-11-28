@@ -44,3 +44,6 @@ void runSocketUtilsTests();
 
 // Runs send utility tests.
 void runSendUtilsTests();
+
+// Runs network message input and output tests.
+void runMessageIOTests();

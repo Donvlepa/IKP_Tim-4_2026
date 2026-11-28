@@ -141,6 +141,7 @@
     <ClInclude Include="HashMap.h" />
     <ClInclude Include="MessageBuffer.h" />
     <ClInclude Include="MessageHeader.h" />
+    <ClInclude Include="MessageIO.h" />
     <ClInclude Include="PayloadCodec.h" />
     <ClInclude Include="Payloads.h" />
     <ClInclude Include="pch.h" />
@@ -156,6 +157,7 @@
   <ItemGroup>
     <ClCompile Include="Common.cpp" />
     <ClCompile Include="MessageBuffer.cpp" />
+    <ClCompile Include="MessageIO.cpp" />
     <ClCompile Include="PayloadCodec.cpp" />
     <ClCompile Include="pch.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>

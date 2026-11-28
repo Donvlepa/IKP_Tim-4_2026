@@ -71,7 +71,7 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <TargetName>IKPTest</TargetName>
+    <TargetName>IKP</TargetName>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -139,6 +139,7 @@
     <ClCompile Include="HashMapTests.cpp" />
     <ClCompile Include="MessageBufferTests.cpp" />
     <ClCompile Include="MessageHeaderTests.cpp" />
+    <ClCompile Include="MessageIOTests.cpp" />
     <ClCompile Include="PayloadCodecTests.cpp" />
     <ClCompile Include="PayloadTests.cpp" />
     <ClCompile Include="ProtocolTests.cpp" />
