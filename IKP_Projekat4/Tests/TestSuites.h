@@ -35,3 +35,18 @@ void runPayloadCodecTests();
 
 // Runs message buffer tests.
 void runMessageBufferTests();
+
+// Runs Winsock context tests.
+void runWinsockContextTests();
+
+// Runs socket utility tests.
+void runSocketUtilsTests();
+
+// Runs send utility tests.
+void runSendUtilsTests();
+
+// Runs network message input and output tests.
+void runMessageIOTests();
+
+// Runs network integration tests.
+void runNetworkIntegrationTests();

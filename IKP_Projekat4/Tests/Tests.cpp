@@ -43,6 +43,21 @@ int main()
     std::cout << "\n[MESSAGE BUFFER]\n";
     runMessageBufferTests();
 
+    std::cout << "\n[WINSOCK CONTEXT]\n";
+    runWinsockContextTests();
+
+    std::cout << "\n[SOCKET UTILS]\n";
+    runSocketUtilsTests();
+
+    std::cout << "\n[SEND UTILS]\n";
+    runSendUtilsTests();
+
+    std::cout << "\n[MESSAGE IO]\n";
+    runMessageIOTests();
+
+    std::cout << "\n[NETWORK INTEGRATION]\n";
+    runNetworkIntegrationTests();
+
     std::cout << "\n================================\n";
     std::cout << "All tests passed successfully.\n";
     std::cout << "================================\n";

@@ -141,6 +141,7 @@
     <ClInclude Include="HashMap.h" />
     <ClInclude Include="MessageBuffer.h" />
     <ClInclude Include="MessageHeader.h" />
+    <ClInclude Include="MessageIO.h" />
     <ClInclude Include="PayloadCodec.h" />
     <ClInclude Include="Payloads.h" />
     <ClInclude Include="pch.h" />
@@ -148,11 +149,15 @@
     <ClInclude Include="Queue.h" />
     <ClInclude Include="Request.h" />
     <ClInclude Include="RequestEntry.h" />
+    <ClInclude Include="SendUtils.h" />
+    <ClInclude Include="SocketUtils.h" />
+    <ClInclude Include="WinsockContext.h" />
     <ClInclude Include="WorkerEntry.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Common.cpp" />
     <ClCompile Include="MessageBuffer.cpp" />
+    <ClCompile Include="MessageIO.cpp" />
     <ClCompile Include="PayloadCodec.cpp" />
     <ClCompile Include="pch.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
@@ -162,6 +167,9 @@
     </ClCompile>
     <ClCompile Include="Protocol.cpp" />
     <ClCompile Include="RequestEntry.cpp" />
+    <ClCompile Include="SendUtils.cpp" />
+    <ClCompile Include="SocketUtils.cpp" />
+    <ClCompile Include="WinsockContext.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

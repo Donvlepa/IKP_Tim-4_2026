@@ -70,6 +70,9 @@
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <TargetName>IKP</TargetName>
+  </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
@@ -136,13 +139,18 @@
     <ClCompile Include="HashMapTests.cpp" />
     <ClCompile Include="MessageBufferTests.cpp" />
     <ClCompile Include="MessageHeaderTests.cpp" />
+    <ClCompile Include="MessageIOTests.cpp" />
+    <ClCompile Include="NetworkIntegrationTests.cpp" />
     <ClCompile Include="PayloadCodecTests.cpp" />
     <ClCompile Include="PayloadTests.cpp" />
     <ClCompile Include="ProtocolTests.cpp" />
     <ClCompile Include="QueueTests.cpp" />
     <ClCompile Include="RequestEntryTests.cpp" />
     <ClCompile Include="RequestTests.cpp" />
+    <ClCompile Include="SendUtilsTests.cpp" />
+    <ClCompile Include="SocketUtilsTests.cpp" />
     <ClCompile Include="Tests.cpp" />
+    <ClCompile Include="WinsockContextTests.cpp" />
     <ClCompile Include="WorkerEntryTests.cpp" />
   </ItemGroup>
   <ItemGroup>
