@@ -145,13 +145,17 @@
     <ClCompile Include="PayloadTests.cpp" />
     <ClCompile Include="ProtocolTests.cpp" />
     <ClCompile Include="QueueTests.cpp" />
+    <ClCompile Include="RegistrationServerTests.cpp" />
     <ClCompile Include="RequestEntryTests.cpp" />
     <ClCompile Include="RequestTests.cpp" />
     <ClCompile Include="SendUtilsTests.cpp" />
     <ClCompile Include="SocketUtilsTests.cpp" />
+    <ClCompile Include="TcpClientTests.cpp" />
+    <ClCompile Include="TcpListenerTests.cpp" />
     <ClCompile Include="Tests.cpp" />
     <ClCompile Include="WinsockContextTests.cpp" />
     <ClCompile Include="WorkerEntryTests.cpp" />
+    <ClCompile Include="WorkerRegistrationTests.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Common\Common.vcxproj">
@@ -160,6 +164,9 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="TestSuites.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="ProcessSmokeTest.ps1" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

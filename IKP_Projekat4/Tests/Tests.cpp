@@ -58,6 +58,18 @@ int main()
     std::cout << "\n[NETWORK INTEGRATION]\n";
     runNetworkIntegrationTests();
 
+    std::cout << "\n[TCP LISTENER]\n";
+    runTcpListenerTests();
+
+    std::cout << "\n[TCP CLIENT]\n";
+    runTcpClientTests();
+
+    std::cout << "\n[WORKER REGISTRATION]\n";
+    runWorkerRegistrationTests();
+
+    std::cout << "\n[REGISTRATION SERVER]\n";
+    runRegistrationServerTests();
+
     std::cout << "\n================================\n";
     std::cout << "All tests passed successfully.\n";
     std::cout << "================================\n";

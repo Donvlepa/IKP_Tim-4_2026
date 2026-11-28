@@ -50,3 +50,15 @@ void runMessageIOTests();
 
 // Runs network integration tests.
 void runNetworkIntegrationTests();
+
+// Runs TCP listener tests.
+void runTcpListenerTests();
+
+// Runs TCP client tests.
+void runTcpClientTests();
+
+// Runs worker registration tests.
+void runWorkerRegistrationTests();
+
+// Runs registration server tests.
+void runRegistrationServerTests();
